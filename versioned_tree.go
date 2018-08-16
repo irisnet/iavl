@@ -84,18 +84,15 @@ func (tree *VersionedTree) Load() (int64, error) {
 //
 // Returns the version number of the latest version found
 func (tree *VersionedTree) LoadVersion(targetVersion int64) (int64, error) {
-	roots, err := tree.ndb.getRoots()
-	if err != nil {
-		return 0, err
-	}
-	if len(roots) == 0 {
-		return 0, nil
-	}
-
-	// Load all roots from the database.
 	latestVersion := int64(0)
-	for version, root := range roots {
+	tree.ndb.traversePrefix([]byte(rootPrefix), func(k, v []byte) {
+		var version int64
+		fmt.Sscanf(string(k), rootPrefixFmt, &version)
+		root := v
 
+		if targetVersion != 0 && version > targetVersion {
+			return
+		}
 		// Construct a tree manually.
 		t := &Tree{}
 		t.ndb = tree.ndb
@@ -105,11 +102,13 @@ func (tree *VersionedTree) LoadVersion(targetVersion int64) (int64, error) {
 		}
 		tree.versions[version] = t
 
-		if version > latestVersion &&
-			(targetVersion == 0 || version <= targetVersion) {
-
+		if version > latestVersion {
 			latestVersion = version
 		}
+	})
+
+	if len(tree.versions) == 0 {
+		return 0, nil
 	}
 
 	// Validate latestVersion
