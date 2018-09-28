@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2-iris1 (Sep 28, 2018)
+
+- Support version overwrite
+
 ## 0.9.2 (July 3, 2018)
 
 IMPROVEMTS
