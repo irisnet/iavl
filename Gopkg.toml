@@ -8,7 +8,8 @@
 
 [[constraint]]
   name = "github.com/tendermint/tendermint"
-  version = "v0.27.0-dev1"
+  branch = "vincent/memory-leak"
+  source = "github.com/irisnet/tendermint"
 
 [prune]
   go-tests = true

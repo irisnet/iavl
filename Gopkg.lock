@@ -138,7 +138,8 @@
   version = "v0.14.1"
 
 [[projects]]
-  digest = "1:a0fe2dfa98e218733ef751fcdfaceaac7192776020dd64c0cedc84daa07199d6"
+  branch = "vincent/memory-leak"
+  digest = "1:1a42ea629ea911561169bc41c07cbc891dd157a0db9f0b31979333e9d0cf6113"
   name = "github.com/tendermint/tendermint"
   packages = [
     "crypto/merkle",
@@ -149,8 +150,8 @@
     "libs/test",
   ]
   pruneopts = "UT"
-  revision = "44b769b1acd0b2aaa8c199b0885bc2811191fb2e"
-  version = "v0.27.0-dev1"
+  revision = "6bd2006cdc2b255cffb4e21faf3d6a18f725b7f8"
+  source = "github.com/irisnet/tendermint"
 
 [[projects]]
   branch = "master"
