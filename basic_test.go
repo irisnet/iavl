@@ -32,7 +32,7 @@ func TestBasic(t *testing.T) {
 
 	// Test 0x00
 	{
-		idx, val := tree.Get64([]byte{0x00})
+		idx, val := tree.Get([]byte{0x00})
 		if val != nil {
 			t.Errorf("Expected no value to exist")
 		}
@@ -46,7 +46,7 @@ func TestBasic(t *testing.T) {
 
 	// Test "1"
 	{
-		idx, val := tree.Get64([]byte("1"))
+		idx, val := tree.Get([]byte("1"))
 		if val == nil {
 			t.Errorf("Expected value to exist")
 		}
@@ -60,7 +60,7 @@ func TestBasic(t *testing.T) {
 
 	// Test "2"
 	{
-		idx, val := tree.Get64([]byte("2"))
+		idx, val := tree.Get([]byte("2"))
 		if val == nil {
 			t.Errorf("Expected value to exist")
 		}
@@ -74,7 +74,7 @@ func TestBasic(t *testing.T) {
 
 	// Test "4"
 	{
-		idx, val := tree.Get64([]byte("4"))
+		idx, val := tree.Get([]byte("4"))
 		if val != nil {
 			t.Errorf("Expected no value to exist")
 		}
@@ -88,7 +88,7 @@ func TestBasic(t *testing.T) {
 
 	// Test "6"
 	{
-		idx, val := tree.Get64([]byte("6"))
+		idx, val := tree.Get([]byte("6"))
 		if val != nil {
 			t.Errorf("Expected no value to exist")
 		}
@@ -237,7 +237,7 @@ func TestIntegration(t *testing.T) {
 		if !updated {
 			t.Error("should have been updated")
 		}
-		if tree.Size() != i+1 {
+		if tree.Size() != int64(i+1) {
 			t.Error("size was wrong", tree.Size(), i+1)
 		}
 	}
@@ -249,7 +249,7 @@ func TestIntegration(t *testing.T) {
 		if has := tree.Has([]byte(randstr(12))); has {
 			t.Error("Table has extra key")
 		}
-		if _, val := tree.Get64([]byte(r.key)); string(val) != string(r.value) {
+		if _, val := tree.Get([]byte(r.key)); string(val) != string(r.value) {
 			t.Error("wrong value")
 		}
 	}
@@ -267,12 +267,12 @@ func TestIntegration(t *testing.T) {
 			if has := tree.Has([]byte(randstr(12))); has {
 				t.Error("Table has extra key")
 			}
-			_, val := tree.Get64([]byte(r.key))
+			_, val := tree.Get([]byte(r.key))
 			if string(val) != string(r.value) {
 				t.Error("wrong value")
 			}
 		}
-		if tree.Size() != len(records)-(i+1) {
+		if tree.Size() != int64(len(records)-(i+1)) {
 			t.Error("size was wrong", tree.Size(), (len(records) - (i + 1)))
 		}
 	}
@@ -382,7 +382,7 @@ func TestPersistence(t *testing.T) {
 	t2 := NewMutableTree(db, 0)
 	t2.Load()
 	for key, value := range records {
-		_, t2value := t2.Get64([]byte(key))
+		_, t2value := t2.Get([]byte(key))
 		if string(t2value) != value {
 			t.Fatalf("Invalid value. Expected %v, got %v", value, t2value)
 		}
@@ -423,10 +423,14 @@ func TestProof(t *testing.T) {
 func TestTreeProof(t *testing.T) {
 	db := db.NewMemDB()
 	tree := NewMutableTree(db, 100)
+	assert.Equal(t, tree.Hash(), []byte(nil))
 
 	// should get false for proof with nil root
-	_, _, err := tree.GetWithProof([]byte("foo"))
-	assert.Error(t, err)
+	value, proof, err := tree.GetWithProof([]byte("foo"))
+	assert.Nil(t, value)
+	assert.Nil(t, proof)
+	assert.Error(t, proof.Verify([]byte(nil)))
+	assert.NoError(t, err)
 
 	// insert lots of info and store the bytes
 	keys := make([][]byte, 200)
@@ -436,9 +440,15 @@ func TestTreeProof(t *testing.T) {
 		keys[i] = []byte(key)
 	}
 
+	tree.SaveVersion()
+
 	// query random key fails
-	_, _, err = tree.GetWithProof([]byte("foo"))
+	value, proof, err = tree.GetWithProof([]byte("foo"))
+	assert.Nil(t, value)
+	assert.NotNil(t, proof)
 	assert.NoError(t, err)
+	assert.NoError(t, proof.Verify(tree.Hash()))
+	assert.NoError(t, proof.VerifyAbsence([]byte("foo")))
 
 	// valid proof for real keys
 	root := tree.WorkingHash()

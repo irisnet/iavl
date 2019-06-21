@@ -7,27 +7,29 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/tendermint/crypto/tmhash"
 	dbm "github.com/tendermint/tendermint/libs/db"
 )
 
+const (
+	int64Size = 8
+	hashSize  = tmhash.Size
+)
+
 var (
-	// All node keys are prefixed with this. This ensures no collision is
-	// possible with the other keys, and makes them easier to traverse.
-	nodePrefix = "n/"
-	nodeKeyFmt = "n/%X"
+	// All node keys are prefixed with the byte 'n'. This ensures no collision is
+	// possible with the other keys, and makes them easier to traverse. They are indexed by the node hash.
+	nodeKeyFormat = NewKeyFormat('n', hashSize) // n<hash>
 
 	// Orphans are keyed in the database by their expected lifetime.
 	// The first number represents the *last* version at which the orphan needs
 	// to exist, while the second number represents the *earliest* version at
 	// which it is expected to exist - which starts out by being the version
 	// of the node being orphaned.
-	orphanPrefix    = "o/"
-	orphanPrefixFmt = "o/%010d/"         // o/<last-version>/
-	orphanKeyFmt    = "o/%010d/%010d/%X" // o/<last-version>/<first-version>/<hash>
+	orphanKeyFormat = NewKeyFormat('o', int64Size, int64Size, hashSize) // o<last-version><first-version><hash>
 
-	// r/<version>
-	rootPrefix    = "r/"
-	rootPrefixFmt = "r/%010d"
+	// Root nodes are indexed separately by their version
+	rootKeyFormat = NewKeyFormat('r', int64Size) // r<version>
 )
 
 type nodeDB struct {
@@ -152,12 +154,12 @@ func (ndb *nodeDB) SaveBranch(node *Node) []byte {
 }
 
 // DeleteVersion deletes a tree version from disk.
-func (ndb *nodeDB) DeleteVersion(version int64) {
+func (ndb *nodeDB) DeleteVersion(version int64, checkLatestVersion bool) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
 	ndb.deleteOrphans(version)
-	ndb.deleteRoot(version)
+	ndb.deleteRoot(version, checkLatestVersion)
 }
 
 // Saves orphaned nodes to disk under a special prefix.
@@ -196,7 +198,7 @@ func (ndb *nodeDB) deleteOrphans(version int64) {
 
 		// See comment on `orphanKeyFmt`. Note that here, `version` and
 		// `toVersion` are always equal.
-		fmt.Sscanf(string(key), orphanKeyFmt, &toVersion, &fromVersion)
+		orphanKeyFormat.Scan(key, &toVersion, &fromVersion)
 
 		// Delete orphan key and reverse-lookup key.
 		ndb.batch.Delete(key)
@@ -218,15 +220,15 @@ func (ndb *nodeDB) deleteOrphans(version int64) {
 }
 
 func (ndb *nodeDB) nodeKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf(nodeKeyFmt, hash))
+	return nodeKeyFormat.KeyBytes(hash)
 }
 
 func (ndb *nodeDB) orphanKey(fromVersion, toVersion int64, hash []byte) []byte {
-	return []byte(fmt.Sprintf(orphanKeyFmt, toVersion, fromVersion, hash))
+	return orphanKeyFormat.Key(toVersion, fromVersion, hash)
 }
 
 func (ndb *nodeDB) rootKey(version int64) []byte {
-	return []byte(fmt.Sprintf(rootPrefixFmt, version))
+	return rootKeyFormat.Key(version)
 }
 
 func (ndb *nodeDB) getLatestVersion() int64 {
@@ -242,30 +244,30 @@ func (ndb *nodeDB) updateLatestVersion(version int64) {
 	}
 }
 
+func (ndb *nodeDB) resetLatestVersion(version int64) {
+	ndb.latestVersion = version
+}
+
 func (ndb *nodeDB) getPreviousVersion(version int64) int64 {
 	itr := ndb.db.ReverseIterator(
-		[]byte(fmt.Sprintf(rootPrefixFmt, version-1)),
-		[]byte(fmt.Sprintf(rootPrefixFmt, 0)),
+		rootKeyFormat.Key(1),
+		rootKeyFormat.Key(version),
 	)
 	defer itr.Close()
 
 	pversion := int64(-1)
 	for ; itr.Valid(); itr.Next() {
 		k := itr.Key()
-		_, err := fmt.Sscanf(string(k), rootPrefixFmt, &pversion)
-		if err != nil {
-			panic(err)
-		} else {
-			return pversion
-		}
+		rootKeyFormat.Scan(k, &pversion)
+		return pversion
 	}
 
 	return 0
 }
 
 // deleteRoot deletes the root entry from disk, but not the node it points to.
-func (ndb *nodeDB) deleteRoot(version int64) {
-	if version == ndb.getLatestVersion() {
+func (ndb *nodeDB) deleteRoot(version int64, checkLatestVersion bool) {
+	if checkLatestVersion && version == ndb.getLatestVersion() {
 		panic("Tried to delete latest version")
 	}
 
@@ -274,13 +276,12 @@ func (ndb *nodeDB) deleteRoot(version int64) {
 }
 
 func (ndb *nodeDB) traverseOrphans(fn func(k, v []byte)) {
-	ndb.traversePrefix([]byte(orphanPrefix), fn)
+	ndb.traversePrefix(orphanKeyFormat.Key(), fn)
 }
 
 // Traverse orphans ending at a certain version.
 func (ndb *nodeDB) traverseOrphansVersion(version int64, fn func(k, v []byte)) {
-	prefix := fmt.Sprintf(orphanPrefixFmt, version)
-	ndb.traversePrefix([]byte(prefix), fn)
+	ndb.traversePrefix(orphanKeyFormat.Key(version), fn)
 }
 
 // Traverse all keys.
@@ -339,9 +340,9 @@ func (ndb *nodeDB) getRoot(version int64) []byte {
 func (ndb *nodeDB) getRoots() (map[int64][]byte, error) {
 	roots := map[int64][]byte{}
 
-	ndb.traversePrefix([]byte(rootPrefix), func(k, v []byte) {
+	ndb.traversePrefix(rootKeyFormat.Key(), func(k, v []byte) {
 		var version int64
-		fmt.Sscanf(string(k), rootPrefixFmt, &version)
+		rootKeyFormat.Scan(k, &version)
 		roots[version] = v
 	})
 	return roots, nil
@@ -426,12 +427,12 @@ func (ndb *nodeDB) size() int {
 func (ndb *nodeDB) traverseNodes(fn func(hash []byte, node *Node)) {
 	nodes := []*Node{}
 
-	ndb.traversePrefix([]byte(nodePrefix), func(key, value []byte) {
+	ndb.traversePrefix(nodeKeyFormat.Key(), func(key, value []byte) {
 		node, err := MakeNode(value)
 		if err != nil {
 			panic(fmt.Sprintf("Couldn't decode node from database: %v", err))
 		}
-		fmt.Sscanf(string(key), nodeKeyFmt, &node.hash)
+		nodeKeyFormat.Scan(key, &node.hash)
 		nodes = append(nodes, node)
 	})
 
@@ -448,7 +449,7 @@ func (ndb *nodeDB) String() string {
 	var str string
 	index := 0
 
-	ndb.traversePrefix([]byte(rootPrefix), func(key, value []byte) {
+	ndb.traversePrefix(rootKeyFormat.Key(), func(key, value []byte) {
 		str += fmt.Sprintf("%s: %x\n", string(key), value)
 	})
 	str += "\n"
@@ -462,11 +463,13 @@ func (ndb *nodeDB) String() string {
 		if len(hash) == 0 {
 			str += fmt.Sprintf("<nil>\n")
 		} else if node == nil {
-			str += fmt.Sprintf("%s%40x: <nil>\n", nodePrefix, hash)
+			str += fmt.Sprintf("%s%40x: <nil>\n", nodeKeyFormat.Prefix(), hash)
 		} else if node.value == nil && node.height > 0 {
-			str += fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n", nodePrefix, hash, node.key, "", node.height, node.version)
+			str += fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n",
+				nodeKeyFormat.Prefix(), hash, node.key, "", node.height, node.version)
 		} else {
-			str += fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n", nodePrefix, hash, node.key, node.value, node.height, node.version)
+			str += fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n",
+				nodeKeyFormat.Prefix(), hash, node.key, node.value, node.height, node.version)
 		}
 		index++
 	})
