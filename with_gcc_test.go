@@ -13,6 +13,6 @@ import (
 )
 
 func BenchmarkImmutableAvlTreeCLevelDB(b *testing.B) {
-	db := db.NewDB("test", db.CLevelDBBackendStr, "./")
+	db := db.NewDB("test", db.CLevelDBBackend, "./")
 	benchmarkImmutableAvlTreeWithDB(b, db)
 }
