@@ -10,14 +10,6 @@
   version = "v1.1.1"
 
 [[projects]]
-  digest = "1:f2ac2c724fc8214bb7b9dd6d4f5b7a983152051f5133320f228557182263cb94"
-  name = "github.com/etcd-io/bbolt"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "a0458a2b35708eef59eb5f620ceb3cd1c01a824d"
-  version = "v1.3.3"
-
-[[projects]]
   digest = "1:704b145137b5555c6bac6a7e52875e4df8a0a1b7ea74aaae864abcab61e672b0"
   name = "github.com/go-kit/kit"
   packages = [
@@ -147,7 +139,7 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:33830daa35014c558b92c508e7281a33bc18af6fb613354bab585c0549eba9e2"
+  digest = "1:1a42ea629ea911561169bc41c07cbc891dd157a0db9f0b31979333e9d0cf6113"
   name = "github.com/tendermint/tendermint"
   packages = [
     "crypto/merkle",
@@ -158,7 +150,8 @@
     "libs/test",
   ]
   pruneopts = "UT"
-  revision = "866b343c0c864c6ae4369c88506d17572513ce24"
+  revision = "2398bfb090db580ad95d7879ab71bfd98f7c069b"
+  source = "github.com/irisnet/tendermint"
 
 [[projects]]
   branch = "master"

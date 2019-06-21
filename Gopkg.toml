@@ -8,6 +8,7 @@
 
 [[constraint]]
   name = "github.com/tendermint/tendermint"
+  source = "github.com/irisnet/tendermint"
   branch = "develop"
 
 [prune]
