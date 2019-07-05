@@ -138,8 +138,7 @@
   version = "v0.14.1"
 
 [[projects]]
-  branch = "develop"
-  digest = "1:1a42ea629ea911561169bc41c07cbc891dd157a0db9f0b31979333e9d0cf6113"
+  digest = "1:cc92fc87372cbfec83cefc10bd141b24fc4e0d65302133c800309837ae8c2ab6"
   name = "github.com/tendermint/tendermint"
   packages = [
     "crypto/merkle",
@@ -150,8 +149,9 @@
     "libs/test",
   ]
   pruneopts = "UT"
-  revision = "2398bfb090db580ad95d7879ab71bfd98f7c069b"
+  revision = "6258e4de1099884f16b364b1b0f0b4fefda7478a"
   source = "github.com/irisnet/tendermint"
+  version = "v0.31.0"
 
 [[projects]]
   branch = "master"
@@ -163,14 +163,6 @@
   ]
   pruneopts = "UT"
   revision = "9eb0be3963eaeb646c9a9b6d11f3da2b249bb2ca"
-
-[[projects]]
-  branch = "master"
-  digest = "1:cdd29b522bf84f163696331f019c6c4aa49cb065780e492507b8a18f4e597099"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  pruneopts = "UT"
-  revision = "bf70e4678053e8a9f269f32f9b29464e4a03a1e6"
 
 [solve-meta]
   analyzer-name = "dep"
