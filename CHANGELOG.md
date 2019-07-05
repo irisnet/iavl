@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.12.0 (November 26, 2018)
+
+BREAKING CHANGES
+
+- Uses new Tendermint ReverseIterator API.  See https://github.com/tendermint/tendermint/pull/2913
+
+## 0.11.1 (October 29, 2018)
+
+IMPROVEMENTS
+
+- Uses GoAmino v0.14
+
+## 0.11.0 (September 7, 2018)
+
+BREAKING CHANGES
+
+- Changed internal database key format to store int64 key components in a full 8-byte fixed width ([#107])
+- Removed some architecture dependent methods (e.g., use `Get` instead of `Get64` etc) ([#96])  
+
+IMPROVEMENTS
+
+- Database key format avoids use of fmt.Sprintf fmt.Sscanf leading to ~10% speedup in benchmark BenchmarkTreeLoadAndDelete ([#107], thanks to [@silasdavis])
+
+[#107]: https://github.com/tendermint/iavl/pull/107
+[@silasdavis]: https://github.com/silasdavis
+[#96]: https://github.com/tendermint/iavl/pull/96
+
 ## 0.10.0
 
 BREAKING CHANGES
@@ -19,6 +46,12 @@ BUG FIXES
 IMPROVEMENTS
 
 - Change tendermint dep to ^v0.22.0 (#91)
+
+## 0.10.0 (July 11, 2018)
+
+BREAKING CHANGES
+
+- getRangeProof and Get\[Versioned\]\[Range\]WithProof return nil proof/error if tree is empty.
 
 ## 0.9.2 (July 3, 2018)
 
