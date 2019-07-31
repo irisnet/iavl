@@ -270,7 +270,11 @@ func (tree *MutableTree) LoadVersionForOverwriting(targetVersion int64) (int64, 
 	if err != nil {
 		return latestVersion, err
 	}
-	tree.deleteVersionsFrom(targetVersion+1)
+	if targetVersion == 0 {
+		tree.dropTree()
+		return targetVersion, nil
+	}
+	tree.deleteVersionsFrom(targetVersion + 1)
 	return targetVersion, nil
 }
 
@@ -405,6 +409,21 @@ func (tree *MutableTree) deleteVersionsFrom(version int64) error {
 	}
 	tree.ndb.Commit()
 	tree.ndb.resetLatestVersion(newLatestVersion)
+	return nil
+}
+
+// dropTree drop the tree version from disk specified.
+func (tree *MutableTree) dropTree() error {
+	lastestVersion := tree.ndb.getLatestVersion()
+	for version := int64(0); version <= lastestVersion; version++ {
+		if _, ok := tree.versions[version]; !ok {
+			//return cmn.ErrorWrap(ErrVersionDoesNotExist, "")
+			continue
+		}
+		tree.ndb.DeleteVersion(version, false)
+		delete(tree.versions, version)
+	}
+	tree.ndb.Commit()
 	return nil
 }
 
