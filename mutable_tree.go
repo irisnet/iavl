@@ -13,11 +13,11 @@ var ErrVersionDoesNotExist = fmt.Errorf("version does not exist")
 
 // MutableTree is a persistent tree which keeps track of versions.
 type MutableTree struct {
-	*ImmutableTree                  // The current, working tree.
-	lastSaved      *ImmutableTree   // The most recently saved tree.
-	orphans        map[string]int64 // Nodes removed by changes to working tree.
-	versions       map[int64]bool   // The previous, saved versions of the tree.
-	ndb            *nodeDB
+	*ImmutableTree             // The current, working tree.
+	lastSaved *ImmutableTree   // The most recently saved tree.
+	orphans   map[string]int64 // Nodes removed by changes to working tree.
+	versions  map[int64]bool   // The previous, saved versions of the tree.
+	ndb       *nodeDB
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -270,10 +270,6 @@ func (tree *MutableTree) LoadVersionForOverwriting(targetVersion int64) (int64, 
 	if err != nil {
 		return latestVersion, err
 	}
-	if targetVersion == 0 {
-		tree.dropTree()
-		return targetVersion, nil
-	}
 	tree.deleteVersionsFrom(targetVersion + 1)
 	return targetVersion, nil
 }
@@ -412,8 +408,12 @@ func (tree *MutableTree) deleteVersionsFrom(version int64) error {
 	return nil
 }
 
-// dropTree drop the tree version from disk specified.
-func (tree *MutableTree) dropTree() error {
+// Reset delete all the tree version from disk specified.
+func (tree *MutableTree) Reset() error {
+	_, err := tree.LoadVersion(tree.ndb.latestVersion)
+	if err != nil {
+		return err
+	}
 	lastestVersion := tree.ndb.getLatestVersion()
 	for version := int64(0); version <= lastestVersion; version++ {
 		if _, ok := tree.versions[version]; !ok {
