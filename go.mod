@@ -9,4 +9,4 @@ require (
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 )
 
-replace github.com/tendermint/tendermint => github.com/irisnet/tendermint v0.22.3-0.20190828035426-f87a48358599
+replace github.com/tendermint/tendermint => github.com/irisnet/tendermint v0.22.3-0.20190905014850-7daf474ce5c0
