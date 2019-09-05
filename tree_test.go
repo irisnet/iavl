@@ -3,17 +3,15 @@ package iavl
 import (
 	"bytes"
 	"flag"
+	mathrand "math/rand"
 	"os"
 	"runtime"
 	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/libs/db"
-
-	mathrand "math/rand"
-
 	cmn "github.com/tendermint/tendermint/libs/common"
+	db "github.com/tendermint/tm-db"
 )
 
 var testLevelDB bool

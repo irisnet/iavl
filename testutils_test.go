@@ -3,14 +3,13 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	mrand "math/rand"
 	"runtime"
 	"testing"
 
-	mrand "math/rand"
-
 	"github.com/tendermint/go-amino"
 	cmn "github.com/tendermint/tendermint/libs/common"
-	"github.com/tendermint/tendermint/libs/db"
+	db "github.com/tendermint/tm-db"
 )
 
 func randstr(length int) string {
