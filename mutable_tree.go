@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	cmn "github.com/tendermint/tendermint/libs/common"
-	dbm "github.com/tendermint/tendermint/libs/db"
+	dbm "github.com/tendermint/tm-db"
 )
 
 // ErrVersionDoesNotExist is returned if a requested version does not exist.
@@ -13,11 +13,11 @@ var ErrVersionDoesNotExist = fmt.Errorf("version does not exist")
 
 // MutableTree is a persistent tree which keeps track of versions.
 type MutableTree struct {
-	*ImmutableTree             // The current, working tree.
-	lastSaved *ImmutableTree   // The most recently saved tree.
-	orphans   map[string]int64 // Nodes removed by changes to working tree.
-	versions  map[int64]bool   // The previous, saved versions of the tree.
-	ndb       *nodeDB
+	*ImmutableTree                  // The current, working tree.
+	lastSaved      *ImmutableTree   // The most recently saved tree.
+	orphans        map[string]int64 // Nodes removed by changes to working tree.
+	versions       map[int64]bool   // The previous, saved versions of the tree.
+	ndb            *nodeDB
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
